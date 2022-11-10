@@ -1,0 +1,120 @@
+---
+title: "simulation.Rmd"
+output: html_document
+date: "2022-11-10"
+---
+shift + option
+
+```{r}
+library(tidyverse)
+
+set.seed(1)
+
+```
+
+
+
+```{r}
+sim_mean_sd = function(n_obs, mu = 2, sigma = 3) {
+  
+  x = rnorm(n_obs, mean = mu, sd = sigma)
+   
+  tibble(
+    mu_hat = mean(x),
+    sigma_hat = sd(x)
+  )
+} 
+```
+
+```{r}
+sim_mean_sd(n_obs = 30)
+```
+
+for loop
+```{r}
+output = vector("list", length = 100)
+
+for (i in 1:100){
+  
+  output[[i]] = sim_mean_sd(n_obs = 30)
+  
+}
+
+bind_rows(output) %>% 
+  view
+```
+
+list columns
+```{r}
+sim_results_df =  
+  expand_grid(
+    sample_size = 30,
+    iteration = 1:100
+  ) %>% 
+  mutate(
+    estimate_df = map(sample_size, sim_mean_sd)
+  ) %>% 
+  unnest(estimate_df)
+  
+```
+
+```{r}
+sim_results_df %>% 
+  ggplot(aes(x = mu_hat)) + 
+  geom_density()
+```
+
+changing the sample size
+```{r}
+sim_results_df =  
+  expand_grid(
+    sample_size = c(30, 60, 120, 240),
+    iteration = 1:1000
+  ) %>% 
+  mutate(
+    estimate_df = map(sample_size, sim_mean_sd)
+  ) %>% 
+  unnest(estimate_df) %>% 
+  view()
+```
+
+```{r}
+ sim_results_df %>%
+  mutate(
+    sample_size = str_c("n = ", sample_size),
+    sample_size = fct_inorder(sample_size)) %>%
+   ggplot(aes(x = sample_size, y = mu_hat, fill = sample_size)) + 
+  geom_violin() 
+```
+
+change something else 
+```{r}
+sim_results_df =  
+  expand_grid(
+    sample_size = c(30, 60, 120, 240),
+    true_sigma = c(6,  3),
+    iteration = 1:1000
+  ) %>% 
+  mutate(
+    estimate_df = 
+      map2(.x = sample_size, .y = true_sigma, ~sim_mean_sd(n_obs = .x, sigma = .y))
+  ) %>% 
+  unnest(estimate_df) %>% 
+  view()
+```
+
+```{r}
+sim_results_df %>%
+  mutate(
+    sample_size = str_c("n = ", sample_size),
+    sample_size = fct_inorder(sample_size)) %>%
+   ggplot(aes(x = sample_size, y = mu_hat, fill = sample_size)) + 
+  geom_violin() +
+  facet_grid(. ~true_sigma)
+```
+
+
+
+
+
+
